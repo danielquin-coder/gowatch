@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>GoWatch</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>GoWatch</h1>
+  <nav id="tabs" aria-label="Views">
+    <button data-view="setup" class="active">Setup</button>
+    <button data-view="record">Record</button>
+    <button data-view="review">Review</button>
+  </nav>
+  <button id="btn-settings" class="icon" aria-label="Settings" title="Settings">&#9881;</button>
+</header>
+
+<main>
+  <!-- ===================================================== SETUP -->
+  <section id="view-setup" class="view">
+    <div class="card" id="card-account">
+      <h2>OGS account</h2>
+      <div id="account-out" class="row">
+        <span class="muted">Log in to upload games to your online-go.com library.</span>
+        <button id="btn-login" class="primary">Log in with OGS</button>
+      </div>
+      <div id="account-in" class="row" hidden>
+        <img id="avatar" alt="" width="36" height="36">
+        <strong id="username"></strong>
+        <button id="btn-logout" class="ghost">Log out</button>
+      </div>
+      <p id="account-msg" class="msg" role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2>Game</h2>
+      <div class="grid2">
+        <label>Black <input id="name-black" type="text" placeholder="Black" autocomplete="off"></label>
+        <label>White <input id="name-white" type="text" placeholder="White" autocomplete="off"></label>
+        <label>Board
+          <select id="board-size"><option value="19">19 x 19</option><option value="13">13 x 13</option><option value="9">9 x 9</option></select>
+        </label>
+        <label>Komi <input id="komi" type="number" step="0.5" value="6.5" inputmode="decimal"></label>
+      </div>
+      <p class="muted small" id="size-note"></p>
+    </div>
+
+    <div class="card">
+      <h2>Camera &amp; calibration</h2>
+      <p class="muted small">Prop the phone above the board looking straight down. Then tap the <b>four corner intersections</b>
+        (top-left, top-right, bottom-right, bottom-left) - the outermost grid points, not the wooden edge. Drag a handle to fine-tune.</p>
+      <div id="slot-setup" class="slot"></div>
+      <div class="btnrow">
+        <button id="btn-camera" class="primary">Start camera</button>
+        <button id="btn-corners">Tap 4 corners</button>
+        <button id="btn-torch" hidden>Torch</button>
+        <button id="btn-baseline" title="Remember what the empty board looks like">Calibrate empty board</button>
+      </div>
+      <label class="slider">Sensitivity <input id="sens" type="range" min="0" max="100" value="50"><output id="sens-out">50</output></label>
+      <label class="check"><input id="test-mode" type="checkbox"> Test mode (show live classification)</label>
+      <div id="test-wrap" hidden>
+        <canvas id="debug-canvas" width="608" height="608"></canvas>
+        <p class="muted small">Magenta rings = black stones, cyan = white. If stones are missed or invented, move the sensitivity slider or the corners.</p>
+      </div>
+    </div>
+    <button id="btn-start-rec" class="primary big">Start recording</button>
+  </section>
+
+  <!-- ===================================================== RECORD -->
+  <section id="view-record" class="view" hidden>
+    <div id="slot-record" class="slot"></div>
+    <div id="banner" class="banner" hidden>
+      <span id="banner-text">Check board</span>
+      <button id="banner-fix" class="primary small">Fix</button>
+      <button id="banner-x" class="ghost small" aria-label="Dismiss">&times;</button>
+    </div>
+    <div class="statusline"><span id="turn-dot" class="dot"></span><span id="status-text">-</span></div>
+    <div class="btnrow">
+      <button id="btn-pass">Pass</button>
+      <button id="btn-undo">Undo</button>
+      <button id="btn-fix">Fix board</button>
+      <button id="btn-swap" aria-pressed="false">Swap colors</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-end" class="danger">End game</button>
+    </div>
+    <div class="rec-grid">
+      <canvas id="diagram" aria-label="Board diagram"></canvas>
+      <ol id="movelist" aria-label="Move list"></ol>
+    </div>
+  </section>
+
+  <!-- ===================================================== REVIEW -->
+  <section id="view-review" class="view" hidden>
+    <div class="card">
+      <h2>Final position</h2>
+      <canvas id="final-board"></canvas>
+      <p class="muted small" id="review-summary"></p>
+    </div>
+    <div class="card">
+      <h2>Result</h2>
+      <div class="grid3">
+        <label>Winner <select id="res-winner"><option value="">Unknown</option><option value="B">Black</option><option value="W">White</option><option value="0">Draw</option></select></label>
+        <label>By <select id="res-how"><option value="score">Points</option><option value="R">Resignation</option><option value="T">Time</option><option value="F">Forfeit</option></select></label>
+        <label>Points <input id="res-points" type="number" step="0.5" min="0" inputmode="decimal" placeholder="3.5"></label>
+      </div>
+      <p class="muted small">Result string: <code id="res-string">-</code></p>
+    </div>
+    <div class="card">
+      <h2>SGF</h2>
+      <textarea id="sgf-preview" readonly rows="7" spellcheck="false"></textarea>
+      <label>Upload to OGS folder
+        <select id="collection"><option value="0">Library (root)</option></select>
+      </label>
+      <div class="btnrow">
+        <button id="btn-upload" class="primary">Upload to OGS</button>
+        <button id="btn-download">Download SGF</button>
+        <button id="btn-share">Share SGF</button>
+      </div>
+      <p id="upload-msg" class="msg" role="status"></p>
+    </div>
+    <div class="btnrow">
+      <button id="btn-back-rec">Back to recording</button>
+      <button id="btn-new" class="danger">New game</button>
+    </div>
+  </section>
+</main>
+
+<!-- Shared camera stage: moved between the Setup and Record views by app.js -->
+<div id="stage" class="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="overlay"></canvas>
+  <canvas id="magnifier" width="220" height="220" hidden></canvas>
+  <div id="stage-hint" class="stage-hint" hidden></div>
+  <div id="cv-progress" class="cvp" hidden><div id="cv-bar"></div><span id="cv-label">Loading OpenCV...</span></div>
+  <div id="stage-empty" class="stage-empty">Camera is off</div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg-settings">
+  <form method="dialog" class="dlg">
+    <h2>Settings</h2>
+    <label>OGS client id <input id="set-client" type="text" autocomplete="off" spellcheck="false" placeholder="from online-go.com/oauth2/applications/"></label>
+    <label>CORS proxy URL (optional) <input id="set-proxy" type="url" autocomplete="off" spellcheck="false" placeholder="https://gowatch-proxy.you.workers.dev"></label>
+    <label>Redirect URI to register on OGS
+      <input id="set-redirect" type="text" readonly>
+    </label>
+    <p class="muted small">These are stored only in this browser. See the README for registering the OAuth app.</p>
+    <div class="btnrow">
+      <button id="set-save" value="save" class="primary">Save</button>
+      <button value="cancel" class="ghost">Cancel</button>
+      <button id="set-reset" type="button" class="danger">Reset app data</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-fix">
+  <form method="dialog" class="dlg">
+    <h2>Check board</h2>
+    <p class="muted small" id="fix-hint">Tap intersections to cycle empty / black / white until this matches the real board.</p>
+    <canvas id="fix-board"></canvas>
+    <p class="small" id="fix-result"></p>
+    <div class="btnrow">
+      <button id="fix-accept" value="accept" class="primary">Accept as current state</button>
+      <button id="fix-reset" type="button">Reset to recorded</button>
+      <button value="cancel" class="ghost">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-end">
+  <form method="dialog" class="dlg">
+    <h2>End game</h2>
+    <div class="btnrow col">
+      <button value="BR" class="primary">Black resigns (W+R)</button>
+      <button value="WR" class="primary">White resigns (B+R)</button>
+      <button value="score">Counted / other - enter result</button>
+      <button value="cancel" class="ghost">Keep playing</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "gowatch",
+  "private": true,
+  "description": "No runtime dependencies. Tests use node:test and (for vision) a pre-installed Playwright.",
+  "scripts": { "test": "node --test" }
+}

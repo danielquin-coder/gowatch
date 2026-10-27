@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoWatch login</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #14161a; color: #e8eaed; font: 16px system-ui, sans-serif; text-align: center; padding: 16px; }
+  a { color: #7cc4ff; }
+</style>
+</head>
+<body>
+<main>
+  <p id="msg">Finishing OGS login...</p>
+  <p><a href="./">Back to GoWatch</a></p>
+</main>
+<script type="module">
+/* OAuth redirect landing page. Does the token exchange itself, tells any other open
+   GoWatch tab (BroadcastChannel + localStorage event), then goes back to ./ */
+import { handleCallback } from './js/ogs.js';
+const msg = document.getElementById('msg');
+const announce = (result) => {
+  try { new BroadcastChannel('gowatch-oauth').postMessage(result); } catch { /* unsupported */ }
+  try { localStorage.setItem('gowatch.oauth.result', JSON.stringify({ ...result, t: Date.now() })); } catch { /* ignore */ }
+};
+try {
+  const me = await handleCallback(location.search);
+  announce({ ok: true, username: me.username });
+  msg.textContent = `Logged in as ${me.username}. Returning...`;
+  setTimeout(() => location.replace('./'), 400);
+} catch (e) {
+  announce({ ok: false, error: String(e.message || e) });
+  msg.textContent = 'Login failed: ' + (e.message || e);
+}
+</script>
+</body>
+</html>
